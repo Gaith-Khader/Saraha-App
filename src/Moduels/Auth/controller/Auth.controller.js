@@ -14,20 +14,22 @@ export const signup = async (req,res)=>{
     const hashPassword=hash(password);
 
     const token = generateToken({email}, process.env.VERIFYTOKEN);
-    const link = `http://localhost:3000/auth/confirmEmail/${token}`;
+    
+    const link = `https://spotless-cyan-cocoon.cyclic.app/auth/confirmEmail/${token}`;
     await sendEmail(email,'confirm Email', `<a href="${link}">plz cnfirm emial</a>`);
     
     const createUser = await userModel.create({userName,email,password:hashPassword});
     return res.status(201).json({message:"success",user:createUser});
 }
 
-export const login = async (req,res) => {
+export const login = async (req,res,next) => {
 
     const {email,password} = req.body;
     const user = await userModel.findOne({email});
     // check if email is exists
     if(!user){
-        return res.status(404).json({message:"user not found"});
+        // return res.status(404).json({message:"user not found"});
+        return next(new Error(`email not found`));
     }
     if(!user.confirmEmail){
         return res.json({message:'plz verify your email'})
@@ -35,7 +37,8 @@ export const login = async (req,res) => {
     // if it is exsits then => compare password and log in
     const match = compare(password,user.password);
     if(!match){
-        return res.json({message:"password mismatch"});
+        // return res.json({message:"password mismatch"});
+        return next(new Error(`password mismatch`));
     }
     // create token 
     const token = generateToken({id:user._id});
